@@ -1,5 +1,5 @@
 import { b64_sha1 } from 'sha1.mjs';
-import { stringToAb } from 'abConversions.mjs';
+import { stringToUint8 } from 'abConversions.mjs';
 
 function uint8ArrayToString( uint8Array ) {
 	return Array.from( uint8Array, byte => String.fromCharCode( byte ) ).join( '' );
@@ -121,7 +121,7 @@ class Websocket{
 		switch( true ){
 			case typeof data == 'string' || data instanceof String:
 				opcode = 1;
-				payload = new Uint8Array( stringToAb( data ) );
+				payload = new Uint8Array( stringToUint8( data ).buffer );
 				break;
 
 			case data instanceof Uint8Array:
@@ -150,11 +150,11 @@ class WebsocketServer{
 	constructor( { server } ){
 
 		server.wsUpgrade( ( headers, socket ) => {
-			socket.write( stringToAb( "HTTP/1.1 101 Switching Protocols\r\n" +
+			socket.write( stringToUint8( "HTTP/1.1 101 Switching Protocols\r\n" +
 				"Upgrade: websocket\r\n" +
 				"Connection: Upgrade\r\n" +
 				`Sec-WebSocket-Accept: ${ b64_sha1( headers['sec-websocket-key'] + magicGUID ) }\r\n` +
-				"\r\n" ) );
+				"\r\n" ).buffer );
 			this.#listeners.connection( new Websocket( socket ) );
 		} );
 	}

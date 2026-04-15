@@ -1,14 +1,14 @@
-export { toBase64, fromBase64, stringToAb };
+export { toBase64, fromBase64, stringToUint8 };
 //import { readFileSync, writeFileSync } from 'fs';
 
 const b64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-function stringToAb( str ) {
-	const bytes = new Uint8Array( str.length );
+function stringToUint8( str ) {
+	const buf = new Uint8Array( str.length );
 	for ( let i = 0; i < str.length; i++ ) {
-		bytes[i] = str.charCodeAt( i ) & 0xFF;
+		buf[i] = str.charCodeAt( i ) & 0xFF;
 	}
-	return bytes.buffer;
+	return buf;
 }
 
 function toBase64( input ) {

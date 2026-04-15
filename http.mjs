@@ -1,5 +1,5 @@
 import * as net from 'net.mjs';
-import { stringToAb } from 'abConversions.mjs';
+import { stringToUint8 } from 'abConversions.mjs';
 
 function aBufToString(buffer) {
 	return String.fromCharCode.apply(null, new Uint16Array(buffer));
@@ -27,7 +27,7 @@ class Response{
 	end( aBuf = undefined ){
 		if( aBuf ){ this.write( aBuf ); }
 		if( this.#chunked ){
-			this.#socket.write( stringToAb( '0\r\n\r\n' ) );
+			this.#socket.write( stringToUint8( '0\r\n\r\n' ).buffer );
 		}else{
 			//this.#socket.end();
 		}
@@ -41,14 +41,14 @@ class Response{
 	write( aBuf ){
 		if( this.#headers.length > 0 ){
 			this.#headers.unshift( `HTTP/1.1 ${ this.statusCode } ${ this.statusMessage }` );
-			this.#socket.write( stringToAb( this.#headers.join( '\r\n' ) + '\r\n\r\n' ) );
+			this.#socket.write( stringToUint8( this.#headers.join( '\r\n' ) + '\r\n\r\n' ).buffer );
 			this.#headers = [];
 		}
 
 		if( this.#chunked ){
-			this.#socket.write( stringToAb( `${ aBuf.byteLength.toString( 16 ) }\r\n` ) );
+			this.#socket.write( stringToUint8( `${ aBuf.byteLength.toString( 16 ) }\r\n` ).buffer );
 			this.#socket.write( aBuf );
-			this.#socket.write( stringToAb( '\r\n' ) );
+			this.#socket.write( stringToUint8( '\r\n' ).buffer );
 		}else{
 			this.#socket.write( aBuf );
 		}
