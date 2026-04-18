@@ -35,7 +35,12 @@ class Response{
 
 	setHeader( key, value ){
 		this.#chunked = key == 'Transfer-Encoding';
-		this.#headers.push( `${ key }: ${ value }` );
+		let index = this.#headers.findIndex( e => e.includes( `key:` ) );
+		if( index == -1 ){
+			this.#headers.push( `${ key }: ${ value }` );
+		}else{
+			this.#headers[ index ] = `${ key }: ${ value }`;
+		}
 	}
 
 	write( aBuf ){
@@ -86,7 +91,7 @@ export function createServer( func ){
 	} );
 
 	return new class{
-		listen( port ){ netSocket.listen( port ); }
+		listen( { port, key, cert } ){ netSocket.listen( { port, key, cert } ); }
 		wsUpgrade( func ){ wsUpgradeCb = func; }
 	};
 }
