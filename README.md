@@ -104,6 +104,8 @@ Nested directories are allowed. The sample contents of ./files is a trivial web 
 
 wsHttpServer uses the files socket.c and net.mjs from [qjs-socket](https://github.com/boblund/qjs-socket). These are downloaded if necessary when make is run.
 
+Make is used to build wsHttpServer. On Mac or Linux, make will automatically download socket.c and net.mjs if the version at [qjs-socket](https://github.com/boblund/qjs-socket) is newer than the local copies. This requires [jq](https://jqlang.org/) to be installed. If building on some other platform or if jq is not installed, manually copy socket.c and net.mjs to the build directory.
+
 To compile wsHttpServer do:
 ```
 make wsHttpServer

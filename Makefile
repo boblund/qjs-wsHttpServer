@@ -5,35 +5,33 @@ LDFLAGS = -L/usr/local/lib/quickjs -lquickjs -L/opt/homebrew/opt/openssl/lib -ls
 
 all: wsHttpServer
 
-# socket.c
+OS := $(shell uname -s)
+JQ := $(shell which jq)
 
-socket.c:
+ifeq ($(OS), Linux)
+DATE_EPOCH = date -u -d "$$r" +%s
+DATE_TOUCH = date -d "@$$r_epoch" '+%Y%m%d%H%M.%S'
+else ifeq ($(OS), Darwin)
+DATE_EPOCH = date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$$r" +%s
+DATE_TOUCH = date -j -r "$$r_epoch" '+%Y%m%d%H%M.%S'
+endif
+
+all: wsHttpServer
+
+#ifdef DATE_EPOCH
+ifneq ($(and $(DATE_EPOCH),$(JQ)),)
+socket.c net.mjs:
 	@r=`curl -s "https://api.github.com/repos/boblund/qjs-socket/commits?path=$@&per_page=1" | jq -r '.[0].commit.author.date'`; \
-	r_epoch_ltz=`date -u -j -f '%Y-%m-%dT%H:%M:%SZ' $$r +%s`; \
-	r_touch=`date -r $$r_epoch_ltz '+%Y%m%d%H%M.%S'`; \
-	l_epoch=`[ -f $@ ] && date -r $@ +%s 2>/dev/null || echo 0`; \
-	if [ "$$l_epoch" -lt "$$r_epoch_ltz" ]; then \
-		echo "Updating $@..."; \
+	r_epoch=`$(DATE_EPOCH)`; \
+	r_touch=`$(DATE_TOUCH)`; \
+	l_epoch=`[ -f $@ ] && date -r $@ +%s || echo 0`; \
+	if [ "$$l_epoch" -lt "$$r_epoch" ]; then \
 		curl -L -o $@ https://raw.githubusercontent.com/boblund/qjs-socket/main/$@; \
 		touch -t $$r_touch $@; \
-	else \
-		echo "$@ is up to date."; \
-	fi
-
-# net.mjs
-
-net.mjs:
-	@r=`curl -s "https://api.github.com/repos/boblund/qjs-socket/commits?path=$@&per_page=1" | jq -r '.[0].commit.author.date'`; \
-	r_epoch_ltz=`date -u -j -f '%Y-%m-%dT%H:%M:%SZ' $$r +%s`; \
-	r_touch=`date -r $$r_epoch_ltz '+%Y%m%d%H%M.%S'`; \
-	l_epoch=`[ -f $@ ] && date -r $@ +%s 2>/dev/null || echo 0`; \
-	if [ "$$l_epoch" -lt "$$r_epoch_ltz" ]; then \
-		echo "Updating $@..."; \
-		curl -L -o $@ https://raw.githubusercontent.com/boblund/qjs-socket/main/$@; \
-		touch -t $$r_touch $@; \
-	else \
-		echo "$@ is up to date."; \
-	fi
+	else echo "$@ is up to date."; fi
+else
+$(warning "OS not Linux or Darwin or jq not installed. socket.c and net.mjs not updated")
+endif
 
 socket.o: socket.c
 	$(CC) $(CFLAGS) -c socket.c -o socket.o
@@ -66,4 +64,4 @@ wsHttpServer: wsHttpServer.o socket.o
 .PHONY: clean
 
 clean:
-	rm -f *.o wsHttpServer.c bundleFiles httpPaths.mjs wsHttpServer
+	rm -f *.o socket.c net.mjs wsHttpServer.c bundleFiles httpPaths.mjs wsHttpServer
