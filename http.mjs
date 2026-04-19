@@ -67,6 +67,11 @@ export function createServer( func ){
 		_socket = socket;
 		socket.on( 'data', readBuf => {
 			const req = parseRequest( String.fromCharCode( ...new Uint8Array( readBuf.buffer, 0, readBuf.buffer.length ) ) );
+			if( req.protocol != "HTTP/1.1" ){
+				console.log( 'Unknown request protocol' );
+				socket.end();
+				return;
+			}
 			if( req.headers?.[ "upgrade" ] == "websocket" ){
 				console.log( `http server websocket upgrade` );
 				if( wsUpgradeCb ){
