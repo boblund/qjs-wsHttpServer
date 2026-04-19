@@ -35,7 +35,12 @@ class Response{
 
 	setHeader( key, value ){
 		this.#chunked = key == 'Transfer-Encoding';
-		this.#headers.push( `${ key }: ${ value }` );
+		let index = this.#headers.findIndex( e => e.includes( `key:` ) );
+		if( index == -1 ){
+			this.#headers.push( `${ key }: ${ value }` );
+		}else{
+			this.#headers[ index ] = `${ key }: ${ value }`;
+		}
 	}
 
 	write( aBuf ){
@@ -62,6 +67,11 @@ export function createServer( func ){
 		_socket = socket;
 		socket.on( 'data', readBuf => {
 			const req = parseRequest( String.fromCharCode( ...new Uint8Array( readBuf.buffer, 0, readBuf.buffer.length ) ) );
+			if( req.protocol != "HTTP/1.1" ){
+				console.log( 'Unknown request protocol' );
+				socket.end();
+				return;
+			}
 			if( req.headers?.[ "upgrade" ] == "websocket" ){
 				console.log( `http server websocket upgrade` );
 				if( wsUpgradeCb ){
@@ -86,7 +96,7 @@ export function createServer( func ){
 	} );
 
 	return new class{
-		listen( port ){ netSocket.listen( port ); }
+		listen( { port, key, cert } ){ netSocket.listen( { port, key, cert } ); }
 		wsUpgrade( func ){ wsUpgradeCb = func; }
 	};
 }

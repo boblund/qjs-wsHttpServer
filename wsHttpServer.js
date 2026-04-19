@@ -5,16 +5,19 @@ import * as ws from 'ws.mjs';
 import { paths } from 'httpPaths.mjs';
 import { fromBase64, stringToUint8 } from 'abConversions.mjs';
 
+const key = 'key.pem';
+const cert = 'cert.pem';
+
 os.signal( os.SIGINT, () => {
 	console.log( 'server stopped' );
 	std.exit( 0 );
 } );
 
-if( scriptArgs.length != 2 ){
-	console.log( `Usage: ${ scriptArgs[ 0 ] } port` );
+if( scriptArgs.length < 2 ){
+	console.log( `Usage: ${ scriptArgs[ 0 ] } port [ tls ]` );
 	std.exit( 1 );
 }
-const [ port ] = scriptArgs.slice( 1 );
+const [ port, tls ] = scriptArgs.slice( 1 );
 
 // Entries in paths of type image have a base64 encoded body
 // convert back to Uint8Array
@@ -77,5 +80,5 @@ wss.on( 'connection', ws => {
 	ws.on( 'close', () => { console.log( `websocket closing` ); } );
 } );
 
-server.listen( port );
-console.log( `Socket server started on port: ${ port }` );
+server.listen( tls ? { port, key, cert } : { port } );
+console.log( `${ tls ? 'TLS ' : '' }Socket server started on port: ${ port }` );

@@ -148,7 +148,6 @@ class WebsocketServer{
 	};
 
 	constructor( { server } ){
-
 		server.wsUpgrade( ( headers, socket ) => {
 			socket.write( stringToUint8( "HTTP/1.1 101 Switching Protocols\r\n" +
 				"Upgrade: websocket\r\n" +

@@ -1,29 +1,37 @@
 QJSC = /usr/local/bin/qjsc
 CC = gcc
-CFLAGS = -g -O0 -Wall -fPIC -I/usr/local/include/quickjs
-LDFLAGS = -L/usr/local/lib/quickjs -lquickjs -lm -lpthread -ldl
-
-# Compare lates
-# a="2026-03-27T20:51:01Z" curl -s "https://api.github.com/repos/boblund/qjs-socket/commits?path=socket.c&per_page=1" | jq '.[0].commit.author.date'
-# b="Mar 29 16:39" ls -l socket.c|tr -s ' '|cut -d ' ' -f 6-8
-#
-# t1=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$a" +%s)
-# t2=$(date -j -f "%b %d %H:%M" "$b" +%s)
-#
-# (( t2 > t1 )) && echo later || echo earlier
+CFLAGS = -O2 -Wall -fPIC -I/usr/local/include/quickjs -I/opt/homebrew/opt/openssl/include
+LDFLAGS = -L/usr/local/lib/quickjs -lquickjs -L/opt/homebrew/opt/openssl/lib -lssl -lcrypto -lm -lpthread -ldl
 
 all: wsHttpServer
 
-# socket
-socket.c:
-	if [ ! -f socket.c ]; then \
-		curl -L -o socket.c https://raw.githubusercontent.com/boblund/qjs-socket/main/socket.c; \
-	fi
+OS := $(shell uname -s)
+JQ := $(shell which jq)
 
-net.mjs:
-	if [ ! -f net.mjs ]; then \
-		curl -L -o net.mjs https://raw.githubusercontent.com/boblund/qjs-socket/main/net.mjs; \
-	fi
+ifeq ($(OS), Linux)
+DATE_EPOCH = date -u -d "$$r" +%s
+DATE_TOUCH = date -d "@$$r_epoch" '+%Y%m%d%H%M.%S'
+else ifeq ($(OS), Darwin)
+DATE_EPOCH = date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$$r" +%s
+DATE_TOUCH = date -j -r "$$r_epoch" '+%Y%m%d%H%M.%S'
+endif
+
+all: wsHttpServer
+
+#ifdef DATE_EPOCH
+ifneq ($(and $(DATE_EPOCH),$(JQ)),)
+socket.c net.mjs:
+	@r=`curl -s "https://api.github.com/repos/boblund/qjs-socket/commits?path=$@&per_page=1" | jq -r '.[0].commit.author.date'`; \
+	r_epoch=`$(DATE_EPOCH)`; \
+	r_touch=`$(DATE_TOUCH)`; \
+	l_epoch=`[ -f $@ ] && date -r $@ +%s || echo 0`; \
+	if [ "$$l_epoch" -lt "$$r_epoch" ]; then \
+		curl -L -o $@ https://raw.githubusercontent.com/boblund/qjs-socket/main/$@; \
+		touch -t $$r_touch $@; \
+	else echo "$@ is up to date."; fi
+else
+$(warning "OS not Linux or Darwin or jq not installed. socket.c and net.mjs not updated")
+endif
 
 socket.o: socket.c
 	$(CC) $(CFLAGS) -c socket.c -o socket.o
@@ -56,4 +64,4 @@ wsHttpServer: wsHttpServer.o socket.o
 .PHONY: clean
 
 clean:
-	rm -f *.o wsHttpServer.c bundleFiles httpPaths.mjs wsHttpServer
+	rm -f *.o socket.c net.mjs wsHttpServer.c bundleFiles httpPaths.mjs wsHttpServer
