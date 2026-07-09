@@ -1,4 +1,4 @@
-const socket = new WebSocket( `${ window.location.protocol == 'http:' ? 'ws' : 'wss' }://localhost:8080` );
+const socket = new WebSocket( `${ window.location.protocol == 'http:' ? 'ws' : 'wss' }://${ window.location.host }` );
 socket.addEventListener( 'open', () => {
 	socket.send( 'hello' );
 } );
