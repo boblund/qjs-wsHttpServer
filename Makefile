@@ -20,7 +20,7 @@ all: wsHttpServer
 
 #ifdef DATE_EPOCH
 ifneq ($(and $(DATE_EPOCH),$(JQ)),)
-socket.c net.mjs:
+socket.c:
 	@r=`curl -s "https://api.github.com/repos/boblund/qjs-socket/commits?path=$@&per_page=1" | jq -r '.[0].commit.author.date'`; \
 	r_epoch=`$(DATE_EPOCH)`; \
 	r_touch=`$(DATE_TOUCH)`; \
@@ -30,7 +30,7 @@ socket.c net.mjs:
 		touch -t $$r_touch $@; \
 	else echo "$@ is up to date."; fi
 else
-$(warning "OS not Linux or Darwin or jq not installed. socket.c and net.mjs not updated")
+$(warning "OS not Linux or Darwin or jq not installed. socket.c not updated")
 endif
 
 socket.o: socket.c
@@ -41,8 +41,8 @@ socket.so: socket.c
 	    -I/usr/local/include/quickjs -L/usr/local/lib/quickjs \
 	    -lquickjs -lm -lpthread -ldl
 
-bundleFiles: bundleFiles.mjs abConversions.mjs
-	$(QJSC) -o bundleFiles bundleFiles.mjs abConversions.mjs
+bundleFiles: bundleFiles.mjs EncodeDecode.mjs
+	$(QJSC) -o bundleFiles bundleFiles.mjs
 
 HTTP_PATHS_FILES := $(shell find files -type f) #$(wildcard files/*)
 print-http:
@@ -52,8 +52,8 @@ httpPaths.mjs: $(HTTP_PATHS_FILES) bundleFiles
 	./bundleFiles $(HTTP_PATHS_FILES)
 
 # wsHttpServer
-wsHttpServer.c: wsHttpServer.js httpPaths.mjs abConversions.mjs http.mjs ws.mjs sha1.mjs net.mjs
-	$(QJSC) -e -M socket.so,socket -o wsHttpServer.c wsHttpServer.js httpPaths.mjs abConversions.mjs  http.mjs ws.mjs sha1.mjs net.mjs
+wsHttpServer.c: wsHttpServer.js httpPaths.mjs EncodeDecode.mjs http.mjs ws.mjs sha1.mjs
+	$(QJSC) -e -M socket.so,socket -o wsHttpServer.c wsHttpServer.js
 
 wsHttpServer.o: wsHttpServer.c
 	$(CC) $(CFLAGS) -c wsHttpServer.c -o wsHttpServer.o
@@ -64,4 +64,4 @@ wsHttpServer: wsHttpServer.o socket.o
 .PHONY: clean
 
 clean:
-	rm -f *.o socket.c net.mjs wsHttpServer.c bundleFiles httpPaths.mjs wsHttpServer
+	rm -f *.o socket.c wsHttpServer.c bundleFiles httpPaths.mjs wsHttpServer

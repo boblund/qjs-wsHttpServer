@@ -1,5 +1,5 @@
 import * as std from 'std';
-import { toBase64 } from 'abConversions.mjs';
+import { toBase64 } from './EncodeDecode.mjs';
 
 function pipe( cmd ){
 	const CHUNK_SIZE = 16 * 1024;

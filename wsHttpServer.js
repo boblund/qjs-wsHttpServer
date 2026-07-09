@@ -3,8 +3,9 @@ import * as std from 'std';
 import * as http from 'http.mjs';
 import * as ws from 'ws.mjs';
 import { paths } from 'httpPaths.mjs';
-import { fromBase64, stringToUint8 } from 'abConversions.mjs';
+import { fromBase64, TextEncoder } from './EncodeDecode.mjs';
 
+const enc = new TextEncoder;
 const key = 'key.pem';
 const cert = 'cert.pem';
 
@@ -47,7 +48,7 @@ const server = http.createServer( ( req, resp ) => {
 			resp.setHeader( 'Content-Length', bodyLength );
 			resp.write( body instanceof ArrayBuffer || body instanceof Uint8Array
 				? body.buffer
-				: stringToUint8( body ).buffer
+				: enc.encode( body ).buffer
 			);
 		} else {
 			resp.setHeader( 'Transfer-Encoding', 'chunked' );
@@ -55,8 +56,7 @@ const server = http.createServer( ( req, resp ) => {
 				const chunkLen = ( pos + CHUNKSIZE < bodyLength ) ? CHUNKSIZE : ( bodyLength - pos );
 				const chunk = body instanceof ArrayBuffer || body instanceof Uint8Array
 					? body.slice( pos, pos + chunkLen ).buffer
-					: stringToUint8( body.slice( pos, pos + chunkLen ) ).buffer;
-
+					: enc.encode( body.slice( pos, pos + chunkLen ) ).buffer;
 				resp.write( chunk );
 				pos += chunkLen;
 			}
@@ -70,7 +70,7 @@ const server = http.createServer( ( req, resp ) => {
 		resp.setHeader( 'Content-Type', 'text/html;charset=utf-8' );
 		resp.setHeader( 'Connection', 'keep-alive' );
 		resp.setHeader( 'Transfer-Encoding', 'chunked' );
-		resp.end( stringToUint8( `404 ${ req.path } not found` ) ).buffer;
+		resp.end( enc.encode( `404 ${ req.path } not found` ) ).buffer;
 	}
 } );
 
