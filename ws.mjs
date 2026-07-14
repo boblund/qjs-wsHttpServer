@@ -16,7 +16,60 @@ function uint8ArrayToString( uint8Array ) {
 	return Array.from( uint8Array, byte => String.fromCharCode( byte ) ).join( '' );
 }
 
-function wsFrame( opcode, data ) {
+function wsFrame( opcode, payload, masked = false ) {
+	const payloadLen = payload.length;
+	const FIN = 0x80;
+	const MASK = masked ? 0x80 : 0x00;
+	const headerLen = ( payloadLen < 126
+		? 2
+		: payloadLen <= 0xFFFF
+			? 4
+			: 10
+	) + ( masked ? 4 : 0 );
+
+	const buf = new Uint8Array( headerLen + payloadLen );
+	let offset = 0;
+
+	buf[offset++] = FIN | opcode;
+
+	if ( payloadLen < 126 ) {
+		buf[offset++] = MASK | payloadLen;
+	} else if ( payloadLen <= 0xFFFF ) {
+		buf[offset++] = MASK | 126;
+		buf[offset++] = ( payloadLen >> 8 ) & 0xFF;
+		buf[offset++] = payloadLen & 0xFF;
+	} else {
+		buf[offset++] = MASK | 127;
+		buf[offset++] = 0; buf[offset++] = 0; buf[offset++] = 0; buf[offset++] = 0;
+		buf[offset++] = ( payloadLen >>> 24 ) & 0xFF;
+		buf[offset++] = ( payloadLen >>> 16 ) & 0xFF;
+		buf[offset++] = ( payloadLen >>> 8 )  & 0xFF;
+		buf[offset++] = payloadLen & 0xFF;
+	}
+
+	if( masked ){
+		const maskKey = [
+			( Math.random() * 256 ) | 0,
+			( Math.random() * 256 ) | 0,
+			( Math.random() * 256 ) | 0,
+			( Math.random() * 256 ) | 0
+		];
+		buf[offset++] = maskKey[0];
+		buf[offset++] = maskKey[1];
+		buf[offset++] = maskKey[2];
+		buf[offset++] = maskKey[3];
+
+		for ( let i = 0; i < payloadLen; i++ ) {
+			buf[offset++] = payload[i] ^ maskKey[i % 4];
+		}
+	} else {
+		buf.set( payload, offset );
+	}
+
+	return buf;
+}
+
+function old_wsFrame( opcode, data ) {
 	const fin    = 0x80; // FIN bit set
 	const payloadLen = data.length;
 
@@ -53,7 +106,7 @@ function wsFrame( opcode, data ) {
 	return raw.buffer;
 }
 
-function serverError( fds, closeFn, e ){
+function frameError( fds, closeFn, e ){
 	const maxReasonBytes = 123;
 	const reasonBytes = e.msg.length > maxReasonBytes
 		? e.msg.slice( 0, maxReasonBytes )
@@ -64,7 +117,7 @@ function serverError( fds, closeFn, e ){
 	payload[1] = e.code & 0xFF;
 	payload.set( reasonBytes, 2 );
 	const frame = wsFrame( 0x8, payload );
-	os.write( fds[ 1 ], frame, 0, frame.byteLength );
+	os.write( fds[ 1 ], frame.buffer, 0, frame.length );
 	closeFn();
 	os.setReadHandler( fds[ 0 ], null );
 	os.close( fds[ 0 ] ); os.close( fds[ 1 ] );
@@ -107,7 +160,7 @@ class Websocket{
 						// top 4 bytes should be 0 for realistic sizes; if not, payload is >4GB (reject/handle separately)
 						const high = ( buf[offset] << 24 ) | ( buf[offset + 1] << 16 ) | ( buf[offset + 2] << 8 ) | buf[offset + 3];
 						if ( high !== 0 ){
-							serverError( fds, this.#listeners.close, { code: 1002, msg: 'Payload too large' } );
+							frameError( fds, this.#listeners.close, { code: 1002, msg: 'Payload too large' } );
 							return;
 						}
 						payloadLen = (
@@ -128,7 +181,7 @@ class Websocket{
 					}
 
 					if( payloadLen > MAX_PAYLOAD ){
-						serverError( fds, this.#listeners.close, { code: 1002, msg: 'Payload too large' } );
+						frameError( fds, this.#listeners.close, { code: 1002, msg: 'Payload too large' } );
 						return;
 					}
 
@@ -175,7 +228,7 @@ class Websocket{
 		}
 
 		const frame = wsFrame( opcode, payload );
-		os.write( this.#fds[ 1 ], frame, 0, frame.byteLength );
+		os.write( this.#fds[ 1 ], frame.buffer, 0, frame.length );
 	}
 }
 
