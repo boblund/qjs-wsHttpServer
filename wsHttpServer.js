@@ -76,7 +76,10 @@ const server = http.createServer( ( req, resp ) => {
 
 const wss = ws.createServer( { server } );
 wss.on( 'connection', ws => {
-	ws.on( 'message', data => { ws.send( data ); } );
+	ws.on( 'message', data => {
+		ws.send( data );
+		os.setTimeout( () => { ws.close(); }, 10000 );
+	} );
 	ws.on( 'close', () => { console.log( `websocket closing` ); } );
 } );
 
