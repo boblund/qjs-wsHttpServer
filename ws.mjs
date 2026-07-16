@@ -1,6 +1,6 @@
 import * as os from 'os';
 import { b64_sha1 } from 'sha1.mjs';
-import { WsEndpoint } from '../p2p-client/wsEndpoint.mjs';
+import { WsEndpoint } from './wsEndpoint.mjs';
 import { TextEncoder } from './EncodeDecode.mjs';
 
 const enc = new TextEncoder;

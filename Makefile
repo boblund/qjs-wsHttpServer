@@ -52,7 +52,7 @@ httpPaths.mjs: $(HTTP_PATHS_FILES) bundleFiles
 	./bundleFiles $(HTTP_PATHS_FILES)
 
 # wsHttpServer
-wsHttpServer.c: wsHttpServer.js httpPaths.mjs EncodeDecode.mjs http.mjs ws.mjs sha1.mjs ../p2p-client/wsEndpoint.mjs
+wsHttpServer.c: wsHttpServer.js httpPaths.mjs EncodeDecode.mjs http.mjs ws.mjs sha1.mjs wsEndpoint.mjs
 	$(QJSC) -e -M socket.so,socket -o wsHttpServer.c wsHttpServer.js
 
 wsHttpServer.o: wsHttpServer.c
