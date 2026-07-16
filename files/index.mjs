@@ -5,6 +5,11 @@ socket.addEventListener( 'open', () => {
 
 socket.addEventListener( 'message', event => {
 	alert( `websocket message: ${ event.data }` );
+	//socket.close( 1000, 'Going away' );
+} );
+
+socket.addEventListener( 'close', e => {
+	alert( `websocket closed code: ${ e.code }, reason: ${ e.reason }` );
 } );
 
 document.querySelector( 'button' ).addEventListener( 'click', () => {
