@@ -37,9 +37,7 @@ socket.o: socket.c
 	$(CC) $(CFLAGS) -c socket.c -o socket.o
 
 socket.so: socket.c
-	$(CC) -fPIC -shared -DJS_SHARED_LIBRARY -o socket.so socket.c \
-	    -I/usr/local/include/quickjs -L/usr/local/lib/quickjs \
-	    -lquickjs -lm -lpthread -ldl
+	$(CC) $(CFLAGS) -shared -DJS_SHARED_LIBRARY -o socket.so socket.c $(LDFLAGS)
 
 bundleFiles: bundleFiles.mjs EncodeDecode.mjs
 	$(QJSC) -o bundleFiles bundleFiles.mjs
